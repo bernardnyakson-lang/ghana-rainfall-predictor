@@ -4,14 +4,12 @@ from sklearn.model_selection import train_test_split
 # import train_test_split where used to avoid static resolution issues in some editors
 from src.config import (
     DATA_PATH, TARGET_COL, DROP_COLS,
-    CATEGORICAL_COLS, TARGET_CLASSES, TEST_SIZE, RANDOM_STATE,NUMERICAL_COLS
+    CATEGORICAL_COLS, TARGET_CLASSES, TEST_SIZE, RANDOM_STATE, NUMERICAL_COLS
 )
-
 
 def load_data(path=DATA_PATH):
     """Load the rainfall dataset from CSV."""
     return pd.read_csv(path)
-
 
 def standardise_community(name):
     """Clean up inconsistent community name spellings/casing."""
@@ -46,7 +44,6 @@ def standardise_community(name):
     }
     return mapping.get(name, name.title())
 
-
 def clean_data(df):
     df = df.copy()
     df = df.drop(columns=[col for col in DROP_COLS if col in df.columns], errors='ignore')
@@ -71,14 +68,12 @@ def clean_data(df):
 
     return df
 
-
 def encode_features(df):
     df = df.copy()
     categorical_cols = [col for col in CATEGORICAL_COLS if col in df.columns]
     for col in categorical_cols:
         df[col] = LabelEncoder().fit_transform(df[col].astype(str))
     return df
-
 
 def prepare_features(df):
     df = clean_data(df)

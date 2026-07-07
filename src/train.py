@@ -20,7 +20,7 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 from preprocessing import load_data, prepare_features
-from config import MODEL_PATH, RANDOM_STATE, TARGET_CLASSES
+from config import MODEL_PATH, RANDOM_STATE, TARGET_CLASSES, NUMERICAL_COLS
 
 def get_models_and_params(numerical_cols):
     """
@@ -31,48 +31,46 @@ def get_models_and_params(numerical_cols):
         'Decision Tree': (
             DecisionTreeClassifier(class_weight='balanced', random_state=RANDOM_STATE),
             {
-                'max_depth':        randint(3, 15),
+                'max_depth': randint(3, 15),
                 'min_samples_leaf': randint(1, 20)
             }
         ),
         'Random Forest': (
             RandomForestClassifier(class_weight='balanced', random_state=RANDOM_STATE),
             {
-                'n_estimators':     randint(50, 200),
-                'max_depth':        randint(3, 15),
+                'n_estimators': randint(50, 200),
+                'max_depth': randint(3, 15),
                 'min_samples_leaf': randint(1, 20)
             }
         ),
         'XGBoost': (
             XGBClassifier(scale_pos_weight=1, random_state=RANDOM_STATE, eval_metric='mlogloss'),
             {
-                'n_estimators':  randint(50, 200),
-                'max_depth':     randint(3, 10),
+                'n_estimators': randint(50, 200),
+                'max_depth': randint(3, 10),
                 'learning_rate': uniform(0.01, 0.3)
             }
         ),
         'LightGBM': (
             lgb.LGBMClassifier(class_weight='balanced', random_state=RANDOM_STATE),
             {
-                'n_estimators':  randint(50, 200),
-                'max_depth':     randint(3, 10),
+                'n_estimators': randint(50, 200),
+                'max_depth': randint(3, 10),
                 'learning_rate': uniform(0.01, 0.3)
             }
         ),
-        # Add Logistic Regression
         'Logistic Regression': (
             Pipeline([
                 ('preprocessor', ColumnTransformer(
                     transformers=[
-                        ('scaler', StandardScaler(), NUMERICAL_COLS)
+                        ('scaler', StandardScaler(), numerical_cols)
                     ],
                     remainder='passthrough'
                 )),
                 ('model', LogisticRegression(
                     class_weight='balanced',
                     random_state=RANDOM_STATE,
-                    max_iter=2000,
-                    
+                    max_iter=2000
                 ))
             ]),
             {
@@ -80,9 +78,8 @@ def get_models_and_params(numerical_cols):
             }
         ),
     }
-    
-    return models
 
+    return models
 
 def tune_and_compare(models, X_train, y_train, X_test, y_test, n_iter=20, cv=5):
     """
@@ -125,23 +122,22 @@ def tune_and_compare(models, X_train, y_train, X_test, y_test, n_iter=20, cv=5):
     results_df = pd.DataFrame(results).sort_values('Test F1 Macro', ascending=False)
     return results_df, best_models
 
-
 def save_model(model, path=MODEL_PATH):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'wb') as f:
         pickle.dump(model, f)
     print(f'Model saved: {path}')
 
-
 if __name__ == '__main__':
     df = load_data()
     print(f'Data loaded: {df.shape}')
 
     X_train, X_test, y_train, y_test = prepare_features(df)
-    print(f'Train: {X_train.shape}  |  Test: {X_test.shape}')
+    print(f'Train: {X_train.shape} | Test: {X_test.shape}')
     print(f'Target classes: {TARGET_CLASSES}')
 
-    models = get_models_and_params()
+    # Use numerical_cols from config since all models need the same scaler
+    models = get_models_and_params(NUMERICAL_COLS)
 
     print('\nRunning RandomizedSearchCV...\n')
     results_df, best_models = tune_and_compare(models, X_train, y_train, X_test, y_test)
@@ -149,7 +145,7 @@ if __name__ == '__main__':
     print('\n--- Model Comparison ---')
     print(results_df[['Model', 'CV F1 Macro', 'Test F1 Macro']].to_string(index=False))
 
-    best_name  = results_df.iloc[0]['Model']
+    best_name = results_df.iloc[0]['Model']
     best_model = best_models[best_name]
     print(f'\nBest model: {best_name}')
 
